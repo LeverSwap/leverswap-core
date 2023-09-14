@@ -13,15 +13,18 @@ import './UniswapV3Pool.sol';
 contract UniswapV3Factory is IUniswapV3Factory, UniswapV3PoolDeployer, NoDelegateCall {
     /// @inheritdoc IUniswapV3Factory
     address public override owner;
+    address public override oracle;
 
     /// @inheritdoc IUniswapV3Factory
     mapping(uint24 => int24) public override feeAmountTickSpacing;
     /// @inheritdoc IUniswapV3Factory
     mapping(address => mapping(address => mapping(uint24 => address))) public override getPool;
 
-    constructor() {
+    constructor(address _oracle) {
         owner = msg.sender;
         emit OwnerChanged(address(0), msg.sender);
+        oracle = _oracle;
+        emit OracleInitialize(_oracle);
 
         feeAmountTickSpacing[500] = 10;
         emit FeeAmountEnabled(500, 10);
@@ -43,7 +46,7 @@ contract UniswapV3Factory is IUniswapV3Factory, UniswapV3PoolDeployer, NoDelegat
         int24 tickSpacing = feeAmountTickSpacing[fee];
         require(tickSpacing != 0);
         require(getPool[token0][token1][fee] == address(0));
-        pool = deploy(address(this), token0, token1, fee, tickSpacing);
+        pool = deploy(address(this), token0, token1, fee, tickSpacing, oracle);
         getPool[token0][token1][fee] = pool;
         // populate mapping in the reverse direction, deliberate choice to avoid the cost of comparing addresses
         getPool[token1][token0][fee] = pool;

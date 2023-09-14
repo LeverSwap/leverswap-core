@@ -12,6 +12,7 @@ contract UniswapV3PoolDeployer is IUniswapV3PoolDeployer {
         address token1;
         uint24 fee;
         int24 tickSpacing;
+        address oracle;
     }
 
     /// @inheritdoc IUniswapV3PoolDeployer
@@ -24,14 +25,16 @@ contract UniswapV3PoolDeployer is IUniswapV3PoolDeployer {
     /// @param token1 The second token of the pool by address sort order
     /// @param fee The fee collected upon every swap in the pool, denominated in hundredths of a bip
     /// @param tickSpacing The spacing between usable ticks
+    /// @param oracle The address of the oracle contract
     function deploy(
         address factory,
         address token0,
         address token1,
         uint24 fee,
-        int24 tickSpacing
+        int24 tickSpacing,
+        address oracle
     ) internal returns (address pool) {
-        parameters = Parameters({factory: factory, token0: token0, token1: token1, fee: fee, tickSpacing: tickSpacing});
+        parameters = Parameters({factory: factory, token0: token0, token1: token1, fee: fee, tickSpacing: tickSpacing, oracle: oracle});
         pool = address(new UniswapV3Pool{salt: keccak256(abi.encode(token0, token1, fee))}());
         delete parameters;
     }

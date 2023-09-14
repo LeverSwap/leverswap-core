@@ -8,6 +8,10 @@ interface IUniswapV3Factory {
     /// @param oldOwner The owner before the owner was changed
     /// @param newOwner The owner after the owner was changed
     event OwnerChanged(address indexed oldOwner, address indexed newOwner);
+    
+    /// @notice Emitted when the oracle contract is initialized
+    /// @param oracle The oracle address is initialized
+    event OracleInitialize(address indexed oracle);
 
     /// @notice Emitted when a pool is created
     /// @param token0 The first token of the pool by address sort order
@@ -32,6 +36,11 @@ interface IUniswapV3Factory {
     /// @dev Can be changed by the current owner via setOwner
     /// @return The address of the factory owner
     function owner() external view returns (address);
+
+    /// @notice Returns the address of the oracle contract
+    /// @dev This address is immutable
+    /// @return The address of the oracle contract
+    function oracle() external view returns (address);
 
     /// @notice Returns the tick spacing for a given fee amount, if enabled, or 0 if not enabled
     /// @dev A fee amount can never be removed, so this value should be hard coded or cached in the calling context

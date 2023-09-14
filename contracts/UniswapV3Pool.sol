@@ -10,7 +10,7 @@ import './libraries/SafeCast.sol';
 import './libraries/Tick.sol';
 import './libraries/TickBitmap.sol';
 import './libraries/Position.sol';
-import './libraries/Oracle.sol';
+//import './libraries/Oracle.sol';
 
 import './libraries/FullMath.sol';
 import './libraries/FixedPoint128.sol';
@@ -27,6 +27,8 @@ import './interfaces/callback/IUniswapV3MintCallback.sol';
 import './interfaces/callback/IUniswapV3SwapCallback.sol';
 import './interfaces/callback/IUniswapV3FlashCallback.sol';
 
+import './interfaces/IUniswapV3Oracle.sol';
+
 contract UniswapV3Pool is IUniswapV3Pool, NoDelegateCall {
     using LowGasSafeMath for uint256;
     using LowGasSafeMath for int256;
@@ -36,7 +38,7 @@ contract UniswapV3Pool is IUniswapV3Pool, NoDelegateCall {
     using TickBitmap for mapping(int16 => uint256);
     using Position for mapping(bytes32 => Position.Info);
     using Position for Position.Info;
-    using Oracle for Oracle.Observation[65535];
+    //using Oracle for Oracle.Observation[65535];
 
     /// @inheritdoc IUniswapV3PoolImmutables
     address public immutable override factory;
@@ -95,8 +97,8 @@ contract UniswapV3Pool is IUniswapV3Pool, NoDelegateCall {
     mapping(int16 => uint256) public override tickBitmap;
     /// @inheritdoc IUniswapV3PoolState
     mapping(bytes32 => Position.Info) public override positions;
-    /// @inheritdoc IUniswapV3PoolState
-    Oracle.Observation[65535] public override observations;
+
+    address oracle;
 
     /// @dev Mutually exclusive reentrancy protection into the pool to/from a method. This method also prevents entrance
     /// to a function before the pool is initialized. The reentrancy guard is required throughout the contract because
@@ -116,7 +118,7 @@ contract UniswapV3Pool is IUniswapV3Pool, NoDelegateCall {
 
     constructor() {
         int24 _tickSpacing;
-        (factory, token0, token1, fee, _tickSpacing) = IUniswapV3PoolDeployer(msg.sender).parameters();
+        (factory, token0, token1, fee, _tickSpacing, oracle) = IUniswapV3PoolDeployer(msg.sender).parameters();
         tickSpacing = _tickSpacing;
 
         maxLiquidityPerTick = Tick.tickSpacingToMaxLiquidityPerTick(_tickSpacing);
@@ -154,118 +156,57 @@ contract UniswapV3Pool is IUniswapV3Pool, NoDelegateCall {
         return abi.decode(data, (uint256));
     }
 
+    /// @notice Returns data about a specific observation index
+    function observations(uint256 index) external view override returns (uint32 blockTimestamp, int56 tickCumulative, uint160 secondsPerLiquidityCumulativeX128, bool initialized){
+        (blockTimestamp, tickCumulative, secondsPerLiquidityCumulativeX128, initialized) = IUniswapV3Oracle(oracle).getObservations(index);
+    }
+    
     /// @inheritdoc IUniswapV3PoolDerivedState
     function snapshotCumulativesInside(int24 tickLower, int24 tickUpper)
-        external
-        view
-        override
-        noDelegateCall
-        returns (
-            int56 tickCumulativeInside,
-            uint160 secondsPerLiquidityInsideX128,
-            uint32 secondsInside
-        )
+    external
+    view
+    override
+    noDelegateCall
+    returns (
+        int56 tickCumulativeInside,
+        uint160 secondsPerLiquidityInsideX128,
+        uint32 secondsInside
+    )
     {
         checkTicks(tickLower, tickUpper);
 
-        int56 tickCumulativeLower;
-        int56 tickCumulativeUpper;
-        uint160 secondsPerLiquidityOutsideLowerX128;
-        uint160 secondsPerLiquidityOutsideUpperX128;
-        uint32 secondsOutsideLower;
-        uint32 secondsOutsideUpper;
-
-        {
-            Tick.Info storage lower = ticks[tickLower];
-            Tick.Info storage upper = ticks[tickUpper];
-            bool initializedLower;
-            (tickCumulativeLower, secondsPerLiquidityOutsideLowerX128, secondsOutsideLower, initializedLower) = (
-                lower.tickCumulativeOutside,
-                lower.secondsPerLiquidityOutsideX128,
-                lower.secondsOutside,
-                lower.initialized
-            );
-            require(initializedLower);
-
-            bool initializedUpper;
-            (tickCumulativeUpper, secondsPerLiquidityOutsideUpperX128, secondsOutsideUpper, initializedUpper) = (
-                upper.tickCumulativeOutside,
-                upper.secondsPerLiquidityOutsideX128,
-                upper.secondsOutside,
-                upper.initialized
-            );
-            require(initializedUpper);
-        }
-
-        Slot0 memory _slot0 = slot0;
-
-        if (_slot0.tick < tickLower) {
-            return (
-                tickCumulativeLower - tickCumulativeUpper,
-                secondsPerLiquidityOutsideLowerX128 - secondsPerLiquidityOutsideUpperX128,
-                secondsOutsideLower - secondsOutsideUpper
-            );
-        } else if (_slot0.tick < tickUpper) {
-            uint32 time = _blockTimestamp();
-            (int56 tickCumulative, uint160 secondsPerLiquidityCumulativeX128) =
-                observations.observeSingle(
-                    time,
-                    0,
-                    _slot0.tick,
-                    _slot0.observationIndex,
-                    liquidity,
-                    _slot0.observationCardinality
-                );
-            return (
-                tickCumulative - tickCumulativeLower - tickCumulativeUpper,
-                secondsPerLiquidityCumulativeX128 -
-                    secondsPerLiquidityOutsideLowerX128 -
-                    secondsPerLiquidityOutsideUpperX128,
-                time - secondsOutsideLower - secondsOutsideUpper
-            );
-        } else {
-            return (
-                tickCumulativeUpper - tickCumulativeLower,
-                secondsPerLiquidityOutsideUpperX128 - secondsPerLiquidityOutsideLowerX128,
-                secondsOutsideUpper - secondsOutsideLower
-            );
-        }
+        (tickCumulativeInside, secondsPerLiquidityInsideX128, secondsInside) = IUniswapV3Oracle(oracle).snapshotCumulativesInside(
+            tickLower,
+            tickUpper
+        );
     }
 
     /// @inheritdoc IUniswapV3PoolDerivedState
     function observe(uint32[] calldata secondsAgos)
-        external
-        view
-        override
-        noDelegateCall
-        returns (int56[] memory tickCumulatives, uint160[] memory secondsPerLiquidityCumulativeX128s)
+    external
+    view
+    override
+    noDelegateCall
+    returns (int56[] memory tickCumulatives, uint160[] memory secondsPerLiquidityCumulativeX128s)
     {
-        return
-            observations.observe(
-                _blockTimestamp(),
-                secondsAgos,
-                slot0.tick,
-                slot0.observationIndex,
-                liquidity,
-                slot0.observationCardinality
-            );
+        return IUniswapV3Oracle(oracle).observe(secondsAgos);
     }
-
+    
     /// @inheritdoc IUniswapV3PoolActions
     function increaseObservationCardinalityNext(uint16 observationCardinalityNext)
-        external
-        override
-        lock
-        noDelegateCall
+    external
+    override
+    lock
+    noDelegateCall
     {
         uint16 observationCardinalityNextOld = slot0.observationCardinalityNext; // for the event
         uint16 observationCardinalityNextNew =
-            observations.grow(observationCardinalityNextOld, observationCardinalityNext);
+                                IUniswapV3Oracle(oracle).grow(observationCardinalityNextOld, observationCardinalityNext);
         slot0.observationCardinalityNext = observationCardinalityNextNew;
         if (observationCardinalityNextOld != observationCardinalityNextNew)
             emit IncreaseObservationCardinalityNext(observationCardinalityNextOld, observationCardinalityNextNew);
     }
-
+    
     /// @inheritdoc IUniswapV3PoolActions
     /// @dev not locked because it initializes unlocked
     function initialize(uint160 sqrtPriceX96) external override {
@@ -273,7 +214,7 @@ contract UniswapV3Pool is IUniswapV3Pool, NoDelegateCall {
 
         int24 tick = TickMath.getTickAtSqrtRatio(sqrtPriceX96);
 
-        (uint16 cardinality, uint16 cardinalityNext) = observations.initialize(_blockTimestamp());
+        (uint16 cardinality, uint16 cardinalityNext) = IUniswapV3Oracle(oracle).initialize();
 
         slot0 = Slot0({
             sqrtPriceX96: sqrtPriceX96,
@@ -338,7 +279,7 @@ contract UniswapV3Pool is IUniswapV3Pool, NoDelegateCall {
                 uint128 liquidityBefore = liquidity; // SLOAD for gas optimization
 
                 // write an oracle entry
-                (slot0.observationIndex, slot0.observationCardinality) = observations.write(
+                (slot0.observationIndex, slot0.observationCardinality) = IUniswapV3Oracle(oracle).write(
                     _slot0.observationIndex,
                     _blockTimestamp(),
                     _slot0.tick,
@@ -393,10 +334,8 @@ contract UniswapV3Pool is IUniswapV3Pool, NoDelegateCall {
         bool flippedUpper;
         if (liquidityDelta != 0) {
             uint32 time = _blockTimestamp();
-            (int56 tickCumulative, uint160 secondsPerLiquidityCumulativeX128) =
-                observations.observeSingle(
+            (int56 tickCumulative, uint160 secondsPerLiquidityCumulativeX128) = IUniswapV3Oracle(oracle).observeSingle(
                     time,
-                    0,
                     slot0.tick,
                     slot0.observationIndex,
                     liquidity,
@@ -696,9 +635,8 @@ contract UniswapV3Pool is IUniswapV3Pool, NoDelegateCall {
                     // check for the placeholder value, which we replace with the actual value the first time the swap
                     // crosses an initialized tick
                     if (!cache.computedLatestObservation) {
-                        (cache.tickCumulative, cache.secondsPerLiquidityCumulativeX128) = observations.observeSingle(
+                        (cache.tickCumulative, cache.secondsPerLiquidityCumulativeX128) = IUniswapV3Oracle(oracle).observeSingle(
                             cache.blockTimestamp,
-                            0,
                             slot0Start.tick,
                             slot0Start.observationIndex,
                             cache.liquidityStart,
@@ -731,8 +669,7 @@ contract UniswapV3Pool is IUniswapV3Pool, NoDelegateCall {
 
         // update tick and write an oracle entry if the tick change
         if (state.tick != slot0Start.tick) {
-            (uint16 observationIndex, uint16 observationCardinality) =
-                observations.write(
+            (uint16 observationIndex, uint16 observationCardinality) = IUniswapV3Oracle(oracle).write(
                     slot0Start.observationIndex,
                     cache.blockTimestamp,
                     slot0Start.tick,
