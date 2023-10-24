@@ -9,9 +9,12 @@ interface IUniswapV3Factory {
     /// @param newOwner The owner after the owner was changed
     event OwnerChanged(address indexed oldOwner, address indexed newOwner);
     
-    /// @notice Emitted when the oracle contract is initialized
+    /// @notice Emitted when the oracle address is initialized
     /// @param oracle The oracle address is initialized
     event OracleInitialize(address indexed oracle);
+    
+    /// @notice Emitted when the lvsRouter address is initialized
+    event LvsRouterInitialize(address indexed lvsRouter);
 
     /// @notice Emitted when a pool is created
     /// @param token0 The first token of the pool by address sort order
@@ -41,6 +44,9 @@ interface IUniswapV3Factory {
     /// @dev This address is immutable
     /// @return The address of the oracle contract
     function oracle() external view returns (address);
+    
+    /// @notice Returns the address of the lvsRouter contract
+    function lvsRouter() external view returns (address);
 
     /// @notice Returns the tick spacing for a given fee amount, if enabled, or 0 if not enabled
     /// @dev A fee amount can never be removed, so this value should be hard coded or cached in the calling context
@@ -74,14 +80,14 @@ interface IUniswapV3Factory {
         uint24 fee
     ) external returns (address pool);
 
-    /// @notice Updates the owner of the factory
-    /// @dev Must be called by the current owner
-    /// @param _owner The new owner of the factory
-    function setOwner(address _owner) external;
+//    /// @notice Updates the owner of the factory
+//    /// @dev Must be called by the current owner
+//    /// @param _owner The new owner of the factory
+//    function setOwner(address _owner) external;
 
-    /// @notice Enables a fee amount with the given tickSpacing
-    /// @dev Fee amounts may never be removed once enabled
-    /// @param fee The fee amount to enable, denominated in hundredths of a bip (i.e. 1e-6)
-    /// @param tickSpacing The spacing between ticks to be enforced for all pools created with the given fee amount
-    function enableFeeAmount(uint24 fee, int24 tickSpacing) external;
+//    /// @notice Enables a fee amount with the given tickSpacing
+//    /// @dev Fee amounts may never be removed once enabled
+//    /// @param fee The fee amount to enable, denominated in hundredths of a bip (i.e. 1e-6)
+//    /// @param tickSpacing The spacing between ticks to be enforced for all pools created with the given fee amount
+//    function enableFeeAmount(uint24 fee, int24 tickSpacing) external;
 }

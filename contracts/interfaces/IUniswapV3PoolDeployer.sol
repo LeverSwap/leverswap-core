@@ -22,6 +22,7 @@ interface IUniswapV3PoolDeployer {
             address token1,
             uint24 fee,
             int24 tickSpacing,
-            address oracle
+            address oracle,
+            address lvsRouter
         );
 }

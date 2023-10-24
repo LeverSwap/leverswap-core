@@ -61,6 +61,7 @@ interface IUniswapV3PoolState {
     /// Outside values can only be used if the tick is initialized, i.e. if liquidityGross is greater than 0.
     /// In addition, these values are only relative and must be used only in comparison to previous snapshots for
     /// a specific position.
+    //TODO add new variables
     function ticks(int24 tick)
         external
         view
@@ -69,6 +70,10 @@ interface IUniswapV3PoolState {
             int128 liquidityNet,
             uint256 feeGrowthOutside0X128,
             uint256 feeGrowthOutside1X128,
+            uint256 igOutside0X128,
+            uint256 igOutside1X128,
+            uint256 igDivBySqrtPriceOutside0X128,
+            uint256 igMulSqrtPriceOutside1X128,
             int56 tickCumulativeOutside,
             uint160 secondsPerLiquidityOutsideX128,
             uint32 secondsOutside,
@@ -92,6 +97,12 @@ interface IUniswapV3PoolState {
             uint128 _liquidity,
             uint256 feeGrowthInside0LastX128,
             uint256 feeGrowthInside1LastX128,
+            uint256 igAbove1LastX128,
+            uint256 igBelow0LastX128,
+            uint256 igInside0LastX128,
+            uint256 igInside1LastX128,
+            uint256 igDivBySqrtPriceInside0LastX128,
+            uint256 igMulSqrtPriceInside1LastX128,
             uint128 tokensOwed0,
             uint128 tokensOwed1
         );
@@ -113,4 +124,7 @@ interface IUniswapV3PoolState {
             uint160 secondsPerLiquidityCumulativeX128,
             bool initialized
         );
+    
+    /// @notice Returns the current base amount for the pool
+    function getBaseAmount() external view returns (uint256, uint256);
 }

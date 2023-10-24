@@ -118,4 +118,15 @@ interface IUniswapV3PoolEvents {
     /// @param amount0 The amount of token0 protocol fees that is withdrawn
     /// @param amount0 The amount of token1 protocol fees that is withdrawn
     event CollectProtocol(address indexed sender, address indexed recipient, uint128 amount0, uint128 amount1);
+
+    /// @notice borrow token from pool
+    /// @param token The address of the token to borrow
+    /// @param to The address of the recipient
+    /// @param amount The amount of token to borrow
+    event Borrow(address indexed token, address indexed to, uint256 amount);
+    
+    /// @notice repay token to pool
+    /// @param token The address of the token to repay
+    /// @param amount The amount to repay
+    event Repay(address indexed token, uint256 amount);
 }

@@ -17,14 +17,8 @@ contract TickTest {
         ticks[tick] = info;
     }
 
-    function getFeeGrowthInside(
-        int24 tickLower,
-        int24 tickUpper,
-        int24 tickCurrent,
-        uint256 feeGrowthGlobal0X128,
-        uint256 feeGrowthGlobal1X128
-    ) external view returns (uint256 feeGrowthInside0X128, uint256 feeGrowthInside1X128) {
-        return ticks.getFeeGrowthInside(tickLower, tickUpper, tickCurrent, feeGrowthGlobal0X128, feeGrowthGlobal1X128);
+    function getFeeGrowthInside(Tick.FeeGrowthInsideParams memory params) external view returns (Tick.FeeGrowthInsideReturns memory) {
+        return ticks.getFeeGrowthInside(params);
     }
 
     function update(
@@ -40,18 +34,22 @@ contract TickTest {
         uint128 maxLiquidity
     ) external returns (bool flipped) {
         return
-            ticks.update(
+            ticks.update(Tick.TickUpdateParams(
                 tick,
                 tickCurrent,
                 liquidityDelta,
                 feeGrowthGlobal0X128,
                 feeGrowthGlobal1X128,
+                0,
+                0,
+                0,
+                0,
                 secondsPerLiquidityCumulativeX128,
                 tickCumulative,
                 time,
                 upper,
                 maxLiquidity
-            );
+        ));
     }
 
     function clear(int24 tick) external {
@@ -71,6 +69,10 @@ contract TickTest {
                 tick,
                 feeGrowthGlobal0X128,
                 feeGrowthGlobal1X128,
+                0,
+                0,
+                0,
+                0,
                 secondsPerLiquidityCumulativeX128,
                 tickCumulative,
                 time

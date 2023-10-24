@@ -12,6 +12,8 @@ contract MockTimeUniswapV3PoolDeployer is IUniswapV3PoolDeployer {
         address token1;
         uint24 fee;
         int24 tickSpacing;
+        address uniV3Oracle;
+        address lvsRouter;
     }
 
     Parameters public override parameters;
@@ -23,9 +25,11 @@ contract MockTimeUniswapV3PoolDeployer is IUniswapV3PoolDeployer {
         address token0,
         address token1,
         uint24 fee,
-        int24 tickSpacing
+        int24 tickSpacing,
+        address uniV3Oracle,
+        address lvsRouter
     ) external returns (address pool) {
-        parameters = Parameters({factory: factory, token0: token0, token1: token1, fee: fee, tickSpacing: tickSpacing});
+        parameters = Parameters({factory: factory, token0: token0, token1: token1, fee: fee, tickSpacing: tickSpacing, uniV3Oracle: uniV3Oracle, lvsRouter: address(0)});
         pool = address(
             new MockTimeUniswapV3Pool{salt: keccak256(abi.encodePacked(token0, token1, fee, tickSpacing))}()
         );

@@ -13,6 +13,7 @@ contract UniswapV3PoolDeployer is IUniswapV3PoolDeployer {
         uint24 fee;
         int24 tickSpacing;
         address oracle;
+        address lvsRouter;
     }
 
     /// @inheritdoc IUniswapV3PoolDeployer
@@ -32,9 +33,10 @@ contract UniswapV3PoolDeployer is IUniswapV3PoolDeployer {
         address token1,
         uint24 fee,
         int24 tickSpacing,
-        address oracle
+        address oracle,
+        address lvsRouter
     ) internal returns (address pool) {
-        parameters = Parameters({factory: factory, token0: token0, token1: token1, fee: fee, tickSpacing: tickSpacing, oracle: oracle});
+        parameters = Parameters({factory: factory, token0: token0, token1: token1, fee: fee, tickSpacing: tickSpacing, oracle: oracle, lvsRouter: lvsRouter});
         pool = address(new UniswapV3Pool{salt: keccak256(abi.encode(token0, token1, fee))}());
         delete parameters;
     }

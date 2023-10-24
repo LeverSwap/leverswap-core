@@ -14,6 +14,7 @@ contract UniswapV3Factory is IUniswapV3Factory, UniswapV3PoolDeployer, NoDelegat
     /// @inheritdoc IUniswapV3Factory
     address public override owner;
     address public override oracle;
+    address public override lvsRouter;
 
     /// @inheritdoc IUniswapV3Factory
     mapping(uint24 => int24) public override feeAmountTickSpacing;
@@ -46,31 +47,41 @@ contract UniswapV3Factory is IUniswapV3Factory, UniswapV3PoolDeployer, NoDelegat
         int24 tickSpacing = feeAmountTickSpacing[fee];
         require(tickSpacing != 0);
         require(getPool[token0][token1][fee] == address(0));
-        pool = deploy(address(this), token0, token1, fee, tickSpacing, oracle);
+        pool = deploy(address(this), token0, token1, fee, tickSpacing, oracle, lvsRouter);
         getPool[token0][token1][fee] = pool;
         // populate mapping in the reverse direction, deliberate choice to avoid the cost of comparing addresses
         getPool[token1][token0][fee] = pool;
         emit PoolCreated(token0, token1, fee, tickSpacing, pool);
     }
-
-    /// @inheritdoc IUniswapV3Factory
-    function setOwner(address _owner) external override {
+    
+    function setLvsRouter(address _lvsRouter) external{
         require(msg.sender == owner);
-        emit OwnerChanged(owner, _owner);
-        owner = _owner;
+        lvsRouter = _lvsRouter;
+        emit LvsRouterInitialize(_lvsRouter);
     }
 
-    /// @inheritdoc IUniswapV3Factory
-    function enableFeeAmount(uint24 fee, int24 tickSpacing) public override {
-        require(msg.sender == owner);
-        require(fee < 1000000);
-        // tick spacing is capped at 16384 to prevent the situation where tickSpacing is so large that
-        // TickBitmap#nextInitializedTickWithinOneWord overflows int24 container from a valid tick
-        // 16384 ticks represents a >5x price change with ticks of 1 bips
-        require(tickSpacing > 0 && tickSpacing < 16384);
-        require(feeAmountTickSpacing[fee] == 0);
+//    /// @inheritdoc IUniswapV3Factory
+//    function setOwner(address _owner) external override {
+//        require(msg.sender == owner);
+//        emit OwnerChanged(owner, _owner);
+//        owner = _owner;
+//    }
 
-        feeAmountTickSpacing[fee] = tickSpacing;
-        emit FeeAmountEnabled(fee, tickSpacing);
+//    /// @inheritdoc IUniswapV3Factory
+//    function enableFeeAmount(uint24 fee, int24 tickSpacing) public override {
+//        require(msg.sender == owner);
+//        require(fee < 1000000);
+//        // tick spacing is capped at 16384 to prevent the situation where tickSpacing is so large that
+//        // TickBitmap#nextInitializedTickWithinOneWord overflows int24 container from a valid tick
+//        // 16384 ticks represents a >5x price change with ticks of 1 bips
+//        require(tickSpacing > 0 && tickSpacing < 16384);
+//        require(feeAmountTickSpacing[fee] == 0);
+//
+//        feeAmountTickSpacing[fee] = tickSpacing;
+//        emit FeeAmountEnabled(fee, tickSpacing);
+//    }
+
+    function getPairInitCode() external pure returns (bytes32){
+        return keccak256(abi.encodePacked(type(UniswapV3Pool).creationCode));
     }
 }

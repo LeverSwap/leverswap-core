@@ -69,13 +69,13 @@ contract UniswapV3Oracle is IUniswapV3Oracle {
 
         SnapshotCumulativesInternalParam memory params;
         {
-            (,,,,
+            (,,,,,,,,
                 params.lowerTickCumulativeOutside,
                 params.lowerSecondsPerLiquidityOutsideX128,
                 params.lowerSecondsOutside,
                 params.lowerInitialized
             ) = IUniswapV3Pool(msg.sender).ticks(tickLower);
-            (,,,,
+            (,,,,,,,,
                 params.upperTickCumulativeOutside,
                 params.upperSecondsPerLiquidityOutsideX128,
                 params.upperSecondsOutside,
